@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>计算机网络半学期知识汇总测评</title>
+    <style>
+        :root { --primary: #2c3e50; --success: #27ae60; --error: #e74c3c; --bg: #f4f7f6; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, sans-serif; background: var(--bg); }
+        .app-container { display: flex; flex-direction: column; height: 100%; max-width: 600px; margin: 0 auto; background: #fff; position: relative; }
+        
+        /* 登录页 */
+        #page-login { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 999; background: var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
+        .login-box { width: 80%; text-align: center; }
+        .login-box input { width: 100%; padding: 15px; margin: 20px 0; border-radius: 10px; border: none; font-size: 1rem; box-sizing: border-box; text-align: center; outline: none; }
+        .login-btn { width: 100%; padding: 15px; background: var(--success); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+
+        /* 顶部导航 */
+        header { padding: 15px; background: var(--primary); color: white; display: flex; align-items: center; justify-content: space-between; font-size: 13px; height: 60px; box-sizing: border-box; visibility: hidden; }
+        .logout-link { color: #ff7675; cursor: pointer; font-weight: bold; font-size: 11px; border: 1px solid #ff7675; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
+        .progress-bar { height: 6px; background: #455a64; flex-grow: 1; margin: 0 15px; border-radius: 3px; overflow: hidden; }
+        .progress-inner { height: 100%; background: var(--success); width: 0%; transition: 0.3s; }
+
+        /* 内容区 */
+        .content-area { flex: 1; position: relative; overflow: hidden; }
+        .page { display: none; flex-direction: column; width: 100%; height: 100%; background: #fff; box-sizing: border-box; }
+        .active-page { display: flex; }
+
+        /* 章节列表 */
+        .menu-list { padding: 20px; overflow-y: auto; }
+        .chapter-card { background: #fff; border: 1px solid #eee; padding: 18px; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .chapter-info h3 { margin: 0 0 5px 0; color: #333; font-size: 1rem; }
+        .high-score { color: #f39c12; font-weight: bold; font-size: 0.8rem; }
+        .start-btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; }
+
+        /* 做题区 */
+        .quiz-area { flex: 1; overflow-y: auto; padding: 25px; }
+        .question-text { font-size: 1.15rem; font-weight: bold; margin-bottom: 25px; color: #333; line-height: 1.6; }
+        .options-list { display: flex; flex-direction: column; gap: 12px; }
+        .option-btn { padding: 18px; border: 2px solid #f0f0f0; border-radius: 12px; font-size: 1rem; background: #fff; cursor: pointer; transition: 0.2s; -webkit-tap-highlight-color: transparent; }
+        .correct { background: #e8f5e9 !important; border-color: var(--success) !important; color: #2e7d32; font-weight: bold; }
+        .wrong { background: #ffebee !important; border-color: var(--error) !important; color: #c62828; }
+        .disabled { pointer-events: none; }
+
+        .analysis-card { margin-top: 20px; padding: 15px; border-radius: 10px; font-size: 0.95rem; display: none; line-height: 1.6; }
+        .correct-analysis { background: #f1f8e9; color: #33691e; border: 1px solid #c5e1a5; }
+        .wrong-analysis { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
+
+        footer { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; background: white; }
+        .nav-btn { flex: 1; padding: 15px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        #next-btn { background: #3498db; color: white; display: none; }
+        #back-btn { background: #ecf0f1; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="page-login">
+        <div class="login-box">
+            <h2>计算机网络测评系统</h2>
+            <p style="opacity:0.8; font-size:14px;">半学期知识汇总 (2026版)</p>
+            <input type="text" id="user-name-input" placeholder="输入您的姓名" maxlength="10">
+            <button class="login-btn" onclick="login()">开始挑战</button>
+        </div>
+    </div>
+
+    <header id="main-header">
+        <div class="user-info">
+            <span id="display-name">--</span>
+            <span class="logout-link" onclick="logout()">退出清除</span>
+        </div>
+        <div class="progress-bar"><div class="progress-inner" id="progress"></div></div>
+        <span id="q-indicator" style="min-width:35px; text-align:right;"></span>
+    </header>
+
+    <div class="content-area">
+        <div id="page-home" class="page">
+            <div class="menu-list" id="chapter-list"></div>
+        </div>
+
+        <div id="page-quiz" class="page">
+            <div class="quiz-area">
+                <div class="question-text" id="q-text"></div>
+                <div id="options" class="options-list"></div>
+                <div id="analysis-box" class="analysis-card">
+                    <div id="analysis-head" style="font-weight:bold; margin-bottom:5px;"></div>
+                    <div id="analysis-body"></div>
+                </div>
+            </div>
+            <footer>
+                <button id="back-btn" class="nav-btn" onclick="goHome()">返回目录</button>
+                <button id="next-btn" class="nav-btn" onclick="nextQuestion()">下一题</button>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 整合文档及图片内容的题库
+    const database = [
+            {
+    name: "练习1：基础概念与性能 (1-20题)",
+    questions: [
+        { q: "计算机网络最基本的功能是？", a: "资源共享", ops: ["分布式处理", "资源共享", "数据存储", "负载均衡"], analysis: "解析：资源共享（包括硬件、软件和数据资源）是计算机网络产生和发展的根本目的 [cite: 10]。" },
+        { q: "世界上第一个计算机网络是？", a: "ARPANET", ops: ["ARPANET", "ChinaNet", "Internet", "CERNET"], analysis: "解析：ARPANET（阿帕网）是现代互联网的前身，也是全球第一个分组交换网络 [cite: 11]。" },
+        { q: "计算机网络由哪两部分组成？", a: "通信子网和资源子网", ops: ["硬件系统和软件系统", "通信子网和资源子网", "主机和终端", "服务器和客户机"], analysis: "解析：从逻辑功能上划分，网络由负责数据传输的通信子网和负责数据处理的资源子网组成 [cite: 12]。" },
+        { q: "按覆盖范围，校园网属于？", a: "LAN", ops: ["LAN", "MAN", "WAN", "VPN"], analysis: "解析：LAN（局域网）通常覆盖几公里以内的范围，校园网是典型的局域网 [cite: 13]。" },
+        { q: "广域网的主要交换技术是？", a: "分组交换", ops: ["电路交换", "分组交换", "报文交换", "帧交换"], analysis: "解析：广域网核心采用存储转发的分组交换技术，以提高信道利用率 [cite: 14]。" },
+        { q: "下列属于有线传输介质的是？", a: "光纤", ops: ["蓝牙", "光纤", "Wi-Fi", "红外线"], analysis: "解析：光纤通过实体线缆传输信号，属于有线介质；其他三项均为无线传输 [cite: 15]。" },
+        { q: "拓扑结构中，单点故障不影响全网的是？", a: "总线型", ops: ["总线型", "星型", "环型", "树型"], analysis: "解析：在总线型结构中，单一节点失效不会影响整个总线的通信（除非总线本身断裂）[cite: 16]。" },
+        { q: "可靠性最高的拓扑结构是？", a: "网状型", ops: ["星型", "环型", "网状型", "树型"], analysis: "解析：网状型结构具有冗余路径，即使某条链路中断，数据仍可通过其他路径传输 [cite: 17]。" },
+        { q: "传输速率的基本单位是？", a: "bit/s", ops: ["Byte/s", "bit/s", "Hz", "KB"], analysis: "解析：网络带宽和速率的标准单位是比特每秒（bps 或 bit/s）[cite: 18]。" },
+        { q: "1字节等于多少比特？", a: "8", ops: ["4", "8", "16", "32"], analysis: "解析：在计算机存储和通信中，1 Byte（字节）固定等于 8 bits（比特）[cite: 19]。" },
+        { q: "误码率越低，说明传输？", a: "越可靠", ops: ["越快", "越可靠", "距离越远", "带宽越大"], analysis: "解析：误码率是衡量数据传输准确性的指标，数值越低代表传输质量越可靠 [cite: 20]。" },
+        { q: "总时延不包含？", a: "存储时延", ops: ["发送时延", "传播时延", "存储时延", "排队时延"], analysis: "解析：总时延由发送时延、传播时延、处理时延和排队时延组成 [cite: 21]。" },
+        { q: "数字信号的特点是？", a: "离散0/1", ops: ["连续波形", "离散0/1", "易失真", "抗干扰弱"], analysis: "解析：数字信号在取值上是离散的，通常用 0 和 1 代表不同的电压状态 [cite: 22]。" },
+        { q: "模拟信号的特点是？", a: "连续波形", ops: ["离散非连续", "连续波形", "无失真", "保密性高"], analysis: "解析：模拟信号的参量在给定范围内是连续变化的 [cite: 23]。" },
+        { q: "单工通信的典型应用是？", a: "广播", ops: ["电话", "对讲机", "广播", "网络"], analysis: "解析：广播是典型的单向传输方式，属于单工通信 [cite: 24]。" },
+        { q: "对讲机属于哪种通信方式？", a: "半双工", ops: ["单工", "半双工", "全双工", "并行"], analysis: "解析：对讲机允许双方通信，但同一时间只能由一方发送，另一方接收 [cite: 25]。" },
+        { q: "全双工通信需要几条独立信道？", a: "2", ops: ["1", "2", "3", "4"], analysis: "解析：为了实现同时双向传输，全双工通常需要两条独立的逻辑或物理信道 [cite: 26]。" },
+        { q: "局域网常用传输技术是？", a: "基带传输", ops: ["基带传输", "频带传输", "宽带传输", "信元传输"], analysis: "解析：局域网（如以太网）多采用基带传输，即直接传输未经调制的数字脉冲信号 [cite: 27]。" },
+        { q: "编码是将？", a: "数字数据→数字信号", ops: ["数字数据→数字信号", "数字数据→模拟信号", "模拟数据→数字信号", "模拟数据→模拟信号"], analysis: "解析：编码是指将数字数据转换为适合在数字信道上传输的数字信号的过程 [cite: 28]。" },
+        { q: "调制是将？", a: "数字数据→模拟信号", ops: ["数字数据→数字信号", "数字数据→模拟信号", "模拟数据→数字信号", "模拟数据→模拟信号"], analysis: "解析：调制是指将数字信号加载到模拟载波上，以适应模拟信道的传输 [cite: 29]。" }
+    ]
+},
+{
+    name: "练习2：数据通信基础 (21-40题)",
+    questions: [
+        { q: "总时延不包含？", a: "存储时延", ops: ["发送时延", "传播时延", "存储时延", "排队时延"], analysis: "解析：总时延由发送时延、传播时延、处理时延和排队时延四部分组成 [cite: 21]。" },
+        { q: "数字信号的特点是？", a: "离散0/1", ops: ["连续波形", "离散0/1", "易失真", "抗干扰弱"], analysis: "解析：数字信号在取值上是离散的，通常用 0 和 1 代表不同的电平状态 [cite: 22]。" },
+        { q: "模拟信号的特点是？", a: "连续波形", ops: ["离散非连续", "连续波形", "无失真", "保密性高"], analysis: "解析：模拟信号的参量取值在时间上是连续变化的 [cite: 23]。" },
+        { q: "单工通信的典型应用是？", a: "广播", ops: ["电话", "对讲机", "广播", "网络"], analysis: "解析：广播是单向传输，只能由发送端传向接收端，属于单工通信 [cite: 24]。" },
+        { q: "对讲机属于哪种通信方式？", a: "半双工", ops: ["单工", "半双工", "全双工", "并行"], analysis: "解析：对讲机允许双方通信，但同一时刻只能有一方发送数据 [cite: 25]。" },
+        { q: "全双工通信需要几条独立信道？", a: "2", ops: ["1", "2", "3", "4"], analysis: "解析：全双工需要两个独立的信道分别负责两个方向的同时传输 [cite: 26]。" },
+        { q: "局域网常用传输技术是？", a: "基带传输", ops: ["基带传输", "频带传输", "宽带传输", "信元传输"], analysis: "解析：局域网通常直接传输数字信号的原始频率，即基带传输 [cite: 27]。" },
+        { q: "编码是将？", a: "数字数据→数字信号", ops: ["数字数据→数字信号", "数字数据→模拟信号", "模拟数据→数字信号", "模拟数据→模拟信号"], analysis: "解析：编码是指将数字数据转换为数字信号的过程 [cite: 28]。" },
+        { q: "调制是将？", a: "数字数据→模拟信号", ops: ["数字数据→数字信号", "数字数据→模拟信号", "模拟数据→数字信号", "模拟数据→模拟信号"], analysis: "解析：调制是将数字信号转换成适合在模拟信道传输的模拟信号的过程 [cite: 29]。" },
+        { q: "有线电视采用的复用技术是？", a: "FDM", ops: ["FDM", "TDM", "WDM", "CDMA"], analysis: "解析：频分复用（FDM）将信道带宽划分为多个频段，有线电视常用此技术 [cite: 30]。" },
+        { q: "以太网采用的复用技术是？", a: "TDM", ops: ["FDM", "TDM", "WDM", "CDMA"], analysis: "解析：以太网在时间上划分信道资源，属于时分复用（TDM）范畴 [cite: 31]。" },
+        { q: "光纤通信专用复用技术是？", a: "WDM", ops: ["FDM", "TDM", "WDM", "CDMA"], analysis: "解析：波分复用（WDM）是在光纤中同时传输多个不同波长光信号的技术 [cite: 32]。" },
+        { q: "3G/4G移动通信使用的复用技术是？", a: "CDMA", ops: ["FDM", "TDM", "WDM", "CDMA"], analysis: "解析：码分多址（CDMA）通过不同的码片序列区分用户，是移动通信的核心技术 [cite: 33]。" },
+        { q: "OSI参考模型由哪个组织提出？", a: "ISO", ops: ["IEEE", "ISO", "IETF", "IBM"], analysis: "解析：国际标准化组织（ISO）提出了著名的 OSI 七层参考模型 [cite: 34]。" },
+        { q: "OSI模型共分为几层？", a: "7", ops: ["4", "5", "7", "9"], analysis: "解析：OSI 参考模型从下到上分为物理层、链路层、网络层、传输层、会话层、表示层、应用层共 7 层 [cite: 35]。" },
+        { q: "OSI参考模型的最底层是？", a: "物理层", ops: ["物理层", "数据链路层", "网络层", "应用层"], analysis: "解析：物理层是 OSI 模型的第一层，负责透明传输比特流 [cite: 36]。" },
+        { q: "OSI参考模型的最顶层是？", a: "应用层", ops: ["物理层", "数据链路层", "网络层", "应用层"], analysis: "解析：应用层是最高层（第七层），直接面向用户提供服务 [cite: 37]。" },
+        { q: "物理层的核心功能是？", a: "物理连接", ops: ["路由选择", "物理连接", "帧封装", "数据加密"], analysis: "解析：物理层主要定义物理接口特性及建立、维护物理连接 [cite: 38]。" },
+        { q: "数据链路层的数据传输单元是？", a: "帧", ops: ["比特", "帧", "分组", "报文"], analysis: "解析：物理层传比特，链路层则将数据封装成“帧”进行传输 [cite: 39]。" },
+        { q: "网络层的核心功能是？", a: "路由选择", ops: ["物理连接", "路由选择", "差错控制", "会话管理"], analysis: "解析：网络层负责在不同网络间进行路径选择（路由） [cite: 40]。" }
+    ]
+},
+            {
+            name: "练习3：OSI/TCP-IP模型与层次功能 (41-60题)",
+            questions: [
+            { q: "传输层的核心作用是？", a: "端到端传输", ops: ["端到端传输", "链路传输", "物理传输", "应用服务"], analysis: "解析：传输层提供应用进程之间的逻辑通信，即端到端的服务 [cite: 41]。" },
+            { q: "负责数据加密、压缩和格式转换的是OSI模型的？", a: "表示层", ops: ["应用层", "表示层", "会话层", "传输层"], analysis: "解析：表示层主要处理数据的表示方式，如加密、压缩及格式转换 [cite: 42]。" },
+            { q: "HTTP协议属于OSI模型的哪一层？", a: "应用层", ops: ["应用层", "传输层", "网络层", "数据链路层"], analysis: "解析：HTTP是应用层协议，直接为用户的应用进程提供服务 [cite: 43]。" },
+            { q: "TCP协议的特点是？", a: "面向连接、可靠", ops: ["无连接、不可靠", "面向连接、可靠", "无连接、可靠", "面向连接、不可靠"], analysis: "解析：TCP提供面向连接的、可靠的字节流传输服务 [cite: 44]。" },
+            { q: "UDP协议的特点是？", a: "不可靠、无连接", ops: ["可靠、面向连接", "不可靠、无连接", "可靠、无连接", "不可靠、面向连接"], analysis: "解析：UDP是在IP之上发送数据报，不保证交付且无需建立连接 [cite: 45]。" },
+            { q: "ARP协议的作用是？", a: "IP地址→MAC地址", ops: ["IP地址→MAC地址", "MAC地址→IP地址", "域名→IP地址", "IP地址→域名"], analysis: "解析：地址解析协议ARP用于根据已知的IP地址获取对应的物理地址（MAC） [cite: 46]。" },
+            { q: "RARP协议的作用是？", a: "MAC地址→IP地址", ops: ["IP地址→MAC地址", "MAC地址→IP地址", "域名→IP地址", "IP地址→域名"], analysis: "解析：逆地址解析协议RARP允许物理机通过MAC地址请求分配IP地址 [cite: 47]。" },
+            { q: "TCP/IP模型共分为几层？", a: "4", ops: ["4", "5", "7", "9"], analysis: "解析：标准的TCP/IP模型包含网络接口层、网际层、传输层和应用层共4层 [cite: 48]。" },
+            { q: "TCP/IP模型中，对应OSI模型物理层和数据链路层的是？", a: "网络接口层", ops: ["应用层", "传输层", "网络层", "网络接口层"], analysis: "解析：TCP/IP的最底层网络接口层整合了物理连接与链路控制的功能 [cite: 49]。" },
+            { q: "网卡工作在OSI模型的？", a: "数据链路层", ops: ["物理层", "数据链路层", "网络层", "传输层"], analysis: "解析：网卡包含了物理层和链路层功能，但在逻辑划分上通常归于数据链路层设备 [cite: 50]。" },
+            { q: "集线器工作在OSI模型的？", a: "物理层", ops: ["物理层", "数据链路层", "网络层", "应用层"], analysis: "解析：集线器（Hub）属于简单的信号转发设备，工作在物理层 [cite: 51]。" },
+            { q: "二层交换机工作在OSI模型的？", a: "数据链路层", ops: ["物理层", "数据链路层", "网络层", "传输层"], analysis: "解析：二层交换机通过识别MAC地址进行帧转发，工作在链路层 [cite: 52]。" },
+            { q: "路由器工作在OSI模型的？", a: "网络层", ops: ["物理层", "数据链路层", "网络层", "传输层"], analysis: "解析：路由器根据IP地址进行路由选择，是网络层的核心设备 [cite: 53]。" },
+            { q: "中继器的核心作用是？", a: "信号再生", ops: ["路由转发", "信号再生", "帧过滤", "差错控制"], analysis: "解析：中继器用于放大或再生电信号，以延长传输距离 [cite: 54]。" },
+            { q: "非屏蔽双绞线（UTP）的最大传输距离是？", a: "100m", ops: ["50m", "100m", "185m", "500m"], analysis: "解析：根据以太网标准，双绞线的有效传输距离一般限制在100米以内 [cite: 55]。" },
+            { q: "单模光纤的特点是？", a: "纤芯细、距离远", ops: ["纤芯粗、距离近", "纤芯细、距离远", "成本低", "带宽低"], analysis: "解析：单模光纤纤芯极细，仅传输一种模式的光，色散小，传输距离远 [cite: 56]。" },
+            { q: "多模光纤适用于哪种场景？", a: "园区短距离传输", ops: ["骨干网", "海底通信", "园区短距离传输", "长途通信"], analysis: "解析：多模光纤因存在模式色散，传输距离有限，多用于局域网或园区网内部 [cite: 57]。" },
+            { q: "综合布线新国标比旧国标新增的子系统是？", a: "进线间子系统", ops: ["工作区子系统", "进线间子系统", "水平子系统", "垂直子系统"], analysis: "解析：新国标在原有六大子系统基础上，明确划出了进线间子系统 [cite: 58]。" },
+            { q: "工作区子系统中，跳线的最大长度不超过？", a: "5m", ops: ["5m", "10m", "50m", "90m"], analysis: "解析：为保证性能，工作区终端到插座之间的跳线一般建议在5米内 [cite: 59]。" },
+            { q: "水平子系统中，双绞线的最大长度不超过？", a: "90m", ops: ["5m", "50m", "90m", "100m"], analysis: "解析：水平电缆链路通常限长90米，预留10米给两端跳线（总长100米） [cite: 60]。" }
+            ]
+            }
+            ,
+            {
+    name: "练习4：网络层协议、设备与布线系统 (61-80题)",
+    questions: [
+        { q: "垂直子系统推荐使用的传输介质是？", a: "光纤", ops: ["双绞线", "同轴电缆", "光纤", "无线信号"], analysis: "解析：垂直子系统（大楼骨干）由于传输距离较长且带宽要求高，通常首选光纤 [cite: 1, 61]。" },
+        { q: "DDN属于哪种连接技术？", a: "专线连接", ops: ["专线连接", "电路交换", "分组交换", "帧中继"], analysis: "解析：DDN（数字数据网）是利用数字信道提供永久或半永久性连接的专线技术 [cite: 1, 62]。" },
+        { q: "PSTN属于哪种交换技术？", a: "电路交换", ops: ["专线连接", "电路交换", "分组交换", "帧中继"], analysis: "解析：PSTN（公共交换电话网）采用传统的电路交换技术，通信前需建立物理连接 [cite: 1, 63]。" },
+        { q: "ADSL技术是基于哪种技术发展而来的？", a: "PSTN", ops: ["DDN", "PSTN", "ISDN", "帧中继"], analysis: "解析：ADSL（非对称数字用户线路）是在普通电话线（PSTN）上实现高速数据传输的技术 [cite: 1, 64]。" },
+        { q: "X.25属于哪种交换技术？", a: "分组交换", ops: ["专线连接", "电路交换", "分组交换", "帧中继"], analysis: "解析：X.25 是早期的面向连接的分组交换协议标准 [cite: 1, 65]。" },
+        { q: "帧中继是由哪种技术发展而来的？", a: "X.25", ops: ["X.25", "PSTN", "DDN", "ATM"], analysis: "解析：帧中继（Frame Relay）是在 X.25 基础上简化了差错控制以提高效率的技术 [cite: 1, 66]。" },
+        { q: "ATM信元的固定长度是？", a: "53B", ops: ["48B", "53B", "64B", "128B"], analysis: "解析：ATM（异步传输模式）采用固定长度的信元，总长为 53 字节（5B首部 + 48B净荷）[cite: 1, 67]。" },
+        { q: "电路交换的三个阶段依次是？", a: "建立连接→数据传输→拆除连接", ops: ["建立连接→数据传输→拆除连接", "数据传输→建立连接→拆除连接", "存储→转发→确认", "分组→传输→重组"], analysis: "解析：电路交换必须经过连接建立、数据传输和连接释放三个过程 [cite: 1, 68]。" },
+        { q: "报文交换的特点是？", a: "存储转发完整报文", ops: ["占用专用链路", "存储转发完整报文", "切割分组传输", "实时性高"], analysis: "解析：报文交换以完整报文为单位进行存储转发，不需要事先建立连接 [cite: 1, 69]。" },
+        { q: "分组交换中，数据报方式的特点是？", a: "分组无序，需重新排序", ops: ["分组有序到达", "分组无序，需重新排序", "面向连接", "实时性好"], analysis: "解析：数据报方式中每个分组独立选择路由，到达终点时可能失序，需重新排序 [cite: 1, 70]。" },
+        { q: "以太网的核心访问控制机制是？", a: "CSMA/CD", ops: ["CSMA/CD", "Token Ring", "Token Bus", "CDMA"], analysis: "解析：以太网采用带有冲突检测的载波监听多路访问（CSMA/CD）技术 [cite: 1, 71]。" },
+        { q: "标准以太网的传输速率是？", a: "10Mbps", ops: ["10Mbps", "100Mbps", "1Gbps", "10Gbps"], analysis: "解析：经典的 IEEE 802.3 标准以太网传输速率固定为 10Mbps [cite: 1, 72]。" },
+        { q: "10BASE-T中的“T”代表的是？", a: "双绞线", ops: ["光纤", "双绞线", "同轴电缆", "无线传输"], analysis: "解析：T 代表 Twisted Pair（双绞线），BASE 代表基带传输 [cite: 1, 73]。" },
+        { q: "快速以太网对应的IEEE标准是？", a: "IEEE802.3u", ops: ["IEEE802.3", "IEEE802.3u", "IEEE802.3z", "IEEE802.3ak"], analysis: "解析：IEEE 802.3u 定义了速率为 100Mbps 的快速以太网标准 [cite: 1, 74]。" },
+        { q: "千兆以太网对应的IEEE标准是？", a: "IEEE802.3z", ops: ["IEEE802.3", "IEEE802.3u", "IEEE802.3z", "IEEE802.3ak"], analysis: "解析：IEEE 802.3z 是最早的千兆以太网标准（主要针对光纤）[cite: 1, 75]。" },
+        { q: "万兆以太网不再使用的访问控制机制是？", a: "CSMA/CD", ops: ["分组交换", "帧交换", "CSMA/CD", "信元交换"], analysis: "解析：万兆以太网只工作在全双工模式下，因此不再需要冲突检测机制（CSMA/CD）[cite: 1, 76]。" },
+        { q: "以太网MAC地址的长度是？", a: "6B", ops: ["4B", "6B", "8B", "12B"], analysis: "解析：MAC地址由 48 位二进制组成，即 6 个字节 [cite: 1, 77]。" },
+        { q: "HTTP协议的默认端口号是？", a: "80", ops: ["21", "23", "80", "443"], analysis: "解析：超文本传输协议 HTTP 默认使用 80 端口 [cite: 1, 78]。" },
+        { q: "HTTPS协议的默认端口号是？", a: "443", ops: ["21", "23", "80", "443"], analysis: "解析：安全的超文本传输协议 HTTPS 默认使用 443 端口 [cite: 1, 79]。" },
+        { q: "FTP协议的默认端口号是？", a: "21", ops: ["21", "23", "80", "443"], analysis: "解析：FTP（文件传输协议）的控制连接端口号通常为 21 [cite: 1, 80]。" }
+    ]
+},
+{
+    name: "练习5：应用层高级协议与网络运行参数 (81-100题)",
+    questions: [
+        { q: "Telnet协议的默认端口号是？", a: "23", ops: ["21", "23", "80", "443"], analysis: "解析：Telnet（远程登录协议）默认使用23端口进行明文传输控制 [cite: 269]。" },
+        { q: "SMTP协议的主要作用是？", a: "发送电子邮件", ops: ["接收电子邮件", "发送电子邮件", "文件传输", "远程登录"], analysis: "解析：SMTP（简单邮件传输协议）主要用于用户客户端向服务器发送邮件或服务器间转发邮件 [cite: 270]。" },
+        { q: "POP3协议的主要作用是？", a: "接收电子邮件", ops: ["接收电子邮件", "发送电子邮件", "文件传输", "远程登录"], analysis: "解析：POP3（邮局协议版本3）主要用于用户从邮件服务器的邮箱中读取（下载）邮件 [cite: 271]。" },
+        { q: "下列设备中，属于DTE（数据终端设备）的是？", a: "计算机", ops: ["交换机", "调制解调器", "计算机", "路由器"], analysis: "解析：计算机是典型的数据终端设备（DTE），而调制解调器通常属于DCE（数据电路终接设备） [cite: 272]。" },
+        { q: "下列设备中，属于DCE（数据电路终接设备）的是？", a: "调制解调器", ops: ["计算机", "终端", "调制解调器", "打印机"], analysis: "解析：DCE（如Modem）的作用是为DTE提供入网连接，负责信号转换 [cite: 273, 320]。" },
+        { q: "吞吐量与理论带宽的关系通常是？", a: "吞吐量≤理论带宽", ops: ["吞吐量>理论带宽", "吞吐量=理论带宽", "吞吐量≤理论带宽", "无固定关系"], analysis: "解析：由于协议开销、碰撞及网络拥塞，实际吞吐量往往小于或等于链路的理论最大带宽 [cite: 278]。" },
+        { q: "发送时延与下列哪个因素无关？", a: "传输距离", ops: ["数据长度", "带宽", "传输距离", "传输速率"], analysis: "解析：发送时延 = 数据长度 / 信道带宽，与物理上的传输距离（传播距离）无关 [cite: 279, 308]。" },
+        { q: "传播时延与下列哪个因素有关？", a: "传输距离", ops: ["数据长度", "带宽", "传输距离", "设备性能"], analysis: "解析：传播时延 = 传输距离 / 信号传播速度，主要受物理介质长度影响 [cite: 280, 309]。" },
+        { q: "处理时延主要取决于？", a: "路由器处理器性能", ops: ["数据长度", "路由器处理器性能", "传输距离", "线缆类型"], analysis: "解析：处理时延是指路由器或交换机在接收数据包时，进行查表和逻辑处理所需的时间 [cite: 281, 310]。" },
+        { q: "排队时延主要取决于？", a: "网络拥塞程度", ops: ["网络拥塞程度", "数据长度", "带宽", "传输距离"], analysis: "解析：当路由器输入输出流量不平衡时，分组需要在缓冲区排队，网络越拥塞时延越高 [cite: 282]。" },
+        { q: "对等网络（P2P）的特点是？", a: "客户机与服务器地位平等", ops: ["客户机与服务器地位平等", "需专用服务器", "集中控制", "层级管理"], analysis: "解析：P2P模式中每个节点既是客户端也是服务器，不依赖于中心专用服务器 [cite: 283]。" },
+        { q: "B/S网络模式指的是？", a: "浏览器/服务器模式", ops: ["客户机/服务器模式", "浏览器/服务器模式", "对等模式", "分布式模式"], analysis: "解析：B/S即Browser/Server，用户通过浏览器即可访问应用，简化了客户端配置 [cite: 285]。" },
+        { q: "Internet（互联网）按归属属性分类属于？", a: "公用网", ops: ["专用网", "公用网", "内联网", "外联网"], analysis: "解析：Internet是由政府或运营机构建立，面向全社会公众开放的网络 [cite: 286]。" },
+        { q: "环型拓扑结构的主要缺点是？", a: "单点故障导致全网瘫痪", ops: ["电缆长度长", "单点故障导致全网瘫痪", "扩展容易", "故障诊断简单"], analysis: "解析：在闭合环路中，任何一个节点或链路断开都会导致整个环路通信中断 [cite: 289]。" },
+        { q: "星型拓扑结构的核心设备是？", a: "中心节点", ops: ["终端设备", "公共通道", "中心节点", "路由器"], analysis: "解析：星型结构所有节点通过点到点链路连接到一个中心节点（如交换机）上 [cite: 290]。" },
+        { q: "树型拓扑结构的主要特点是？", a: "分层管理", ops: ["分层管理", "无中心节点", "单点故障不影响全网", "管理简单"], analysis: "解析：树型结构由星型结构演变而来，具有明显的层次化，便于扩充网络规模 [cite: 291]。" },
+        { q: "哪种传输介质的抗干扰性最强？", a: "光纤", ops: ["双绞线", "同轴电缆", "光纤", "无线信号"], analysis: "解析：光纤传输的是光脉冲而非电信号，不受电磁干扰的影响 [cite: 298]。" },
+        { q: "1Gbps 等于多少 Mbps？", a: "1000", ops: ["100", "1000", "10000", "10"], analysis: "解析：在网络传输单位中，千兆（G）到兆（M）的换算进率通常采用1000 [cite: 302]。" },
+        { q: "描述信道带宽与传输速率关系的著名定律是？", a: "香农定律", ops: ["摩尔定律", "香农定律", "欧姆定律", "牛顿定律"], analysis: "解析：香农定律定义了在给定带宽和信噪比情况下的信道容量极限 [cite: 319]。" },
+        { q: "实际应用中，数据传输误码率一般要求低于？", a: "10⁻⁶", ops: ["10⁻³", "10⁻⁶", "10⁻⁹", "10⁻¹²"], analysis: "解析：在多数计算机网络标准中，10的负6次方是衡量传输可靠性的基本要求指标 [cite: 305]。" }
+    ]
+},
+{
+    name: "练习6：拓扑结构深挖与传输特性指标 (101-120题)",
+    questions: [
+        { q: "环型拓扑结构的主要缺点是？", a: "单点故障导致全网瘫痪", ops: ["电缆长度长", "单点故障导致全网瘫痪", "扩展容易", "故障诊断简单"], analysis: "解析：环型结构中信号需通过每个节点，任一节点或链路断开都会导致整个环路通信中断 [cite: 101]。" },
+        { q: "星型拓扑结构的核心设备是？", a: "中心节点", ops: ["终端设备", "公共通道", "中心节点", "路由器"], analysis: "解析：星型拓扑所有节点都连接到一个集中的中心节点（如交换机或集线器）上 [cite: 102]。" },
+        { q: "树型拓扑结构的主要特点是？", a: "分层管理", ops: ["分层管理", "无中心节点", "单点故障不影响全网", "管理简单"], analysis: "解析：树型结构是星型结构的扩展，具有明显的层次化，便于网络规模的扩充和管理 [cite: 103]。" },
+        { q: "网状型拓扑结构主要用于？", a: "广域网", ops: ["局域网", "城域网", "广域网", "家庭网络"], analysis: "解析：网状拓扑具有高冗余和高可靠性，是广域网核心骨干常用的结构 [cite: 104]。" },
+        { q: "宽带传输技术的特点是？", a: "可同时传输数字和模拟信号", ops: ["仅传输数字信号", "仅传输模拟信号", "可同时传输数字和模拟信号", "仅传输光信号"], analysis: "解析：宽带传输通过频分复用技术，可以在同一介质上划分出多个频道传输不同类型的信号 [cite: 105]。" },
+        { q: "频带传输技术主要用于？", a: "远距离通信", ops: ["近距离通信", "远距离通信", "局域网通信", "短距离无线通信"], analysis: "解析：频带传输通过载波调制，使信号更适合在长距离的模拟信道（如电话网）中传输 [cite: 106]。" },
+        { q: "三层交换机具备下列哪种功能？", a: "网络层路由", ops: ["物理层转发", "数据链路层转发", "网络层路由", "应用层服务"], analysis: "解析：三层交换机在实现二层高速转发的同时，还具备了网络层（IP层）的路由选择功能 [cite: 107]。" },
+        { q: "网络设备间的环境温度应控制在？", a: "15~25℃", ops: ["0~27℃", "10~30℃", "0~30℃", "15~25℃"], analysis: "解析：为保证网络设备（如服务器、交换机）的稳定运行，机房环境通常建议维持在15~25℃ [cite: 108]。" },
+        { q: "分组交换中，虚电路方式的特点是？", a: "分组有序到达", ops: ["分组有序到达", "分组无序到达", "无连接", "实时性差"], analysis: "解析：虚电路在传输前先建立逻辑连接，确保所有分组沿同一路径按序到达目的地 [cite: 109]。" },
+        { q: "下列哪种传输介质的抗干扰性最强？", a: "光纤", ops: ["双绞线", "同轴电缆", "光纤", "无线信号"], analysis: "解析：光纤传输的是光脉冲，不受电磁波干扰，是抗干扰能力最强的介质 [cite: 110]。" },
+        { q: "无线传输介质中，传输距离最短的是？", a: "红外线", ops: ["蓝牙", "Wi-Fi", "红外线", "卫星通信"], analysis: "解析：红外线传输具有极强的方向性且不能穿墙，有效传输距离通常在几米以内 [cite: 111]。" },
+        { q: "点到点网络中，数据传输的特点是？", a: "仅能在两个节点之间直接传输", ops: ["仅能在两个节点之间直接传输", "一个节点发送，所有节点接收", "无需路由转发", "传输速率低"], analysis: "解析：点到点链路（Point-to-Point）是一对一的物理或逻辑连接 [cite: 112]。" },
+        { q: "广播式网络中，数据传输的特点是？", a: "一个节点发送，所有节点接收", ops: ["仅能在两个节点之间直接传输", "一个节点发送，所有节点接收", "需要路由转发", "传输速率高"], analysis: "解析：广播式网络（如传统的以太网）中，所有节点共享信道，一个节点发送的信息其他节点都能收到 [cite: 113]。" },
+        { q: "1Gbps 等于多少 Mbps？", a: "1000", ops: ["100", "1000", "10000", "10"], analysis: "解析：在网络通信速率计算中，G（Giga）到M（Mega）的换算比例通常按1000计算 [cite: 114]。" },
+        { q: "存储单位中，1KB 等于多少字节？", a: "1024", ops: ["1000", "1024", "2048", "512"], analysis: "解析：在计算机存储容量换算中，1KB = 2的10次方 = 1024 Bytes [cite: 115]。" },
+        { q: "波特率与比特率的关系是？", a: "比特率=波特率×每个码元的比特数", ops: ["比特率=波特率×每个码元的比特数", "波特率=比特率×每个码元的比特数", "比特率=波特率+每个码元的比特数", "无固定关系"], analysis: "解析：比特率（信息传输速率）等于波特率（码元传输速率）乘以每个码元所携带的信息量 [cite: 116]。" },
+        { q: "实际应用中，误码率一般要求低于？", a: "10⁻⁶", ops: ["10⁻³", "10⁻⁶", "10⁻⁹", "10⁻¹²"], analysis: "解析：10的负6次方是大多数计算机网络协议中公认的合格传输可靠性门槛 [cite: 117]。" },
+        { q: "信道带宽越宽，信道容量？", a: "越大", ops: ["越小", "越大", "不变", "不确定"], analysis: "解析：根据香农公式，信道容量与带宽成正比 [cite: 118]。" },
+        { q: "网络拥塞时，吞吐量会？", a: "减小", ops: ["增大", "减小", "不变", "先增大后减小"], analysis: "解析：当网络负载超过处理能力产生拥塞时，会导致丢包和重传，从而使实际吞吐量下降 [cite: 119]。" },
+        { q: "发送时延的计算公式是？", a: "发送时延=数据长度/带宽", ops: ["发送时延=数据长度/带宽", "发送时延=传输距离/信号速度", "发送时延=数据长度/信号速度", "发送时延=传输距离/带宽"], analysis: "解析：发送时延是将所有比特推向信道所需的时间，取决于数据量和推入速率（带宽） [cite: 120]。" }
+    ]
+}
+,
+{
+    name: "练习7：物理层特性与逻辑信道原理 (121-140题)",
+    questions: [
+        { q: "传播时延的计算公式是？", a: "传播时延=传输距离/信号速度", ops: ["传播时延=数据长度/带宽", "传播时延=传输距离/信号速度", "传播时延=数据长度/信号速度", "传播时延=传输距离/带宽"], analysis: "解析：传播时延取决于信号在物理介质中传播的速度和距离 [cite: 121]。" },
+        { q: "路由器的处理时延主要取决于？", a: "查表速度", ops: ["数据长度", "查表速度", "传输距离", "带宽"], analysis: "解析：处理时延主要是路由器提取首部、检查差错和查找路由表选择转发端口的时间 [cite: 122]。" },
+        { q: "网络利用率的取值范围是？", a: "0~1", ops: ["0~1", "0~100", "1~100", "0~10"], analysis: "解析：利用率是一个比例值，范围在0到1之间，过高会导致排队时延急剧增加 [cite: 123]。" },
+        { q: "数据通信中，信息需要转换为哪种形式才能在信道中传输？", a: "信号", ops: ["数字数据", "模拟数据", "信号", "文字"], analysis: "解析：无论原始数据是什么形式，最终必须转换为电信号、光信号等物理信号才能通过介质传输 [cite: 124]。" },
+        { q: "数字信号可通过哪种技术恢复失真信号？", a: "编码", ops: ["调制", "解调", "放大", "编码"], analysis: "解析：数字信号在传输中产生失真后，可以通过识别电平并重新编码的方式实现信号再生 [cite: 125]。" },
+        { q: "模拟信号转换为数字信号的过程称为？", a: "编码", ops: ["编码", "解码", "调制", "解调"], analysis: "解析：将模拟数据（如语音）转换为数字脉冲信号的过程称为编码 [cite: 126]。" },
+        { q: "物理信道的传输特性不包括？", a: "逻辑划分", ops: ["衰减", "失真", "干扰", "逻辑划分"], analysis: "解析：衰减、失真和干扰是物理介质的自然属性，而逻辑划分属于人为定义的功能 [cite: 127]。" },
+        { q: "逻辑信道是在哪个信道的基础上划分出来的？", a: "物理信道", ops: ["物理信道", "数字信道", "模拟信道", "无线信道"], analysis: "解析：逻辑信道是依托于物理介质，通过协议和多路复用技术定义的虚拟路径 [cite: 128]。" },
+        { q: "数字信道中，数据传输通常采用哪种编码方式？", a: "数字编码", ops: ["模拟编码", "数字编码", "调制编码", "解调编码"], analysis: "解析：数字信道直接传输数字脉冲，采用的是数字编码技术 [cite: 129]。" },
+        { q: "模拟信道中，信号的衰减会随什么增加而加剧？", a: "传输距离", ops: ["带宽", "传输速率", "传输距离", "数据长度"], analysis: "解析：电磁信号在模拟信道中传输时，能量消耗与距离呈正相关 [cite: 130]。" },
+        { q: "描述信道带宽与传输速率关系的定律是？", a: "香农定律", ops: ["摩尔定律", "香农定律", "欧姆定律", "牛顿定律"], analysis: "解析：香农公式给出了在有噪声信道中信息传输速率的极限值 [cite: 131]。" },
+        { q: "数据通信系统中，DCE设备的作用是？", a: "将DTE的数字信号转换为适合信道传输的信号", ops: ["处理数据", "发送数据", "将DTE的数字信号转换为适合信道传输的信号", "接收数据"], analysis: "解析：DCE（数据电路终接设备）负责在用户设备和传输网络之间进行信号变换 [cite: 132]。" },
+        { q: "DTE与DCE之间的接口标准称为？", a: "物理接口", ops: ["网络接口", "物理接口", "通信接口", "RS-232接口"], analysis: "解析：物理层定义了DTE和DCE之间的机械、电气、功能和规程特性 [cite: 133]。" },
+        { q: "单工通信中，数据传输的方向是？", a: "单向传输", ops: ["双向传输", "单向传输", "可切换方向", "随机方向"], analysis: "解析：单工通信仅允许信号在信道上往一个方向传输 [cite: 134]。" },
+        { q: "半双工通信中，数据传输方向的特点是？", a: "可切换方向，但同一时间只能单向传输", ops: ["可切换方向，但同一时间只能单向传输", "同时双向传输", "只能单向传输", "无固定方向"], analysis: "解析：半双工允许双向，但不能同时进行 [cite: 135]。" },
+        { q: "全双工通信中，两个方向的传输？", a: "同时进行", ops: ["先后进行", "同时进行", "交替进行", "随机进行"], analysis: "解析：全双工允许通信双方在同一时刻进行数据的发送和接收 [cite: 136]。" },
+        { q: "基带传输中，数字信号的频谱从哪个频率开始？", a: "0Hz", ops: ["0Hz", "100Hz", "1kHz", "1MHz"], analysis: "解析：基带信号指不经过调制的原始信号，其低频分量通常从零频率附近开始 [cite: 137]。" },
+        { q: "频带传输中，调制方式不包括？", a: "编码", ops: ["调幅", "调频", "调相", "编码"], analysis: "解析：调制包括调幅(AM)、调频(FM)和调相(PM)，编码是将数据转为信号的过程，不属于调制方式 [cite: 138]。" },
+        { q: "宽带传输中，不同信号通过什么区分？", a: "频率", ops: ["时间片", "频率", "波长", "码片序列"], analysis: "解析：宽带传输采用频分复用，将介质带宽划分为不同频率的子信道 [cite: 139]。" },
+        { q: "解码是哪个过程的逆过程？", a: "编码", ops: ["编码", "调制", "解调", "放大"], analysis: "解析：编码将数据转信号，解码将信号还原为数据 [cite: 140]。" }
+    ]
+}
+,
+{
+    name: "练习8：数据链路控制、物理接口与地址解析 (141-160题)",
+    questions: [
+        { q: "解调是哪个过程的逆过程？", a: "调制", ops: ["编码", "调制", "解码", "放大"], analysis: "解析：调制是将数字信号转换为模拟信号，解调是将模拟信号还原为数字信号 。" },
+        { q: "频分复用中，不同信号的频率范围？", a: "不重叠", ops: ["重叠", "不重叠", "部分重叠", "随分布"], analysis: "解析：频分复用（FDM）要求各子信道间留有隔离频带，确保频率互不重叠 。" },
+        { q: "时分复用中，不同信号占用不同的？", a: "时间片", ops: ["频率", "波长", "时间片", "码片序列"], analysis: "解析：时分复用（TDM）将时间划分为等长的时隙（时间片）分配给不同信号 。" },
+        { q: "波分复用中，不同波长的光信号在哪个介质中同时传输？", a: "光纤", ops: ["双绞线", "同轴电缆", "光纤", "无线信道"], analysis: "解析：波分复用（WDM）是在单根光纤中传输多种不同波长的光信号 。" },
+        { q: "码分复用中，不同用户使用不同的？", a: "码片序列", ops: ["频率", "时间片", "波长", "码片序列"], analysis: "解析：码分多址（CDMA）通过分配互不相关的码片序列来区分不同用户的信号 。" },
+        { q: "OSI参考模型中，负责在相邻节点之间传输帧的是？", a: "数据链路层", ops: ["物理层", "数据链路层", "网络层", "传输层"], analysis: "解析：数据链路层的主要任务是在相邻节点间的链路上透明、可靠地传输帧 。" },
+        { q: "物理层的接口特性不包括？", a: "逻辑特性", ops: ["机械特性", "电气特性", "功能特性", "逻辑特性"], analysis: "解析：物理层定义了机械、电气、功能和规程四大特性，逻辑特性不属于此范畴 。" },
+        { q: "T568A和T568B标准的区别在于？", a: "接线顺序", ops: ["线缆粗细", "接线顺序", "传输速率", "抗干扰性"], analysis: "解析：这两种标准主要规定了双绞线中 1-3 和 2-6 线对的交换顺序 。" },
+        { q: "LLC子层通过什么地址识别不同的逻辑链路？", a: "逻辑链路地址", ops: ["MAC地址", "IP地址", "逻辑链路地址", "端口地址"], analysis: "解析：逻辑链路控制（LLC）子层负责识别和管理逻辑链路 。" },
+        { q: "MAC子层通过什么地址识别局域网内的不同设备？", a: "MAC地址", ops: ["MAC地址", "IP地址", "逻辑链路地址", "端口地址"], analysis: "解析：MAC地址即物理地址，用于在局域网内唯一标识一块网卡 。" },
+        { q: "网络层中，用于实现不同网络之间路由选择的协议是？", a: "IP协议", ops: ["TCP协议", "UDP协议", "IP协议", "ARP协议"], analysis: "解析：IP协议是网络层的核心协议，负责分组转发和路由选择 。" },
+        { q: "IP地址中，用于标识网络的部分是？", a: "网络位", ops: ["网络位", "主机位", "子网位", "网关位"], analysis: "解析：IP地址由网络号（网络位）和主机号（主机位）两部分组成 。" },
+        { q: "ARP协议通过什么方式获取目标设备的MAC地址？", a: "广播", ops: ["单播", "广播", "组播", "多播"], analysis: "解析：ARP请求是以广播形式发送的，目标设备收到后以单播形式回复 。" },
+        { q: "RARP协议需要通过什么设备获取自身的IP地址？", a: "RARP服务器", ops: ["路由器", "交换机", "RARP服务器", "DNS服务器"], analysis: "解析：逆地址解析协议（RARP）需要网络中存在专门的 RARP 服务器来分配 IP 。" },
+        { q: "传输层中，用于实现端到端流量控制和差错控制的协议是？", a: "TCP协议", ops: ["IP协议", "TCP协议", "UDP协议", "ARP协议"], analysis: "解析：TCP 是面向连接的可靠传输协议，提供流量和差错控制功能 。" },
+        { q: "TCP协议通过什么机制确保数据的可靠传输？", a: "确认机制", ops: ["确认机制", "无确认机制", "广播机制", "组播机制"], analysis: "解析：TCP 通过确认号（ACK）和超时重传等机制确保数据准确到达 。" },
+        { q: "UDP协议适用于哪种业务场景？", a: "视频会议", ops: ["文件传输", "网页浏览", "视频会议", "邮件发送"], analysis: "解析：UDP 实时性好但不可靠，适用于对时延敏感但对少量丢包不敏感的业务 。" },
+        { q: "会话层中，会话连接的建立需要经过的阶段不包括？", a: "拆除", ops: ["发起", "确认", "连接", "拆除"], analysis: "解析：会话连接建立阶段包含发起、确认和连接，拆除属于释放阶段 。" },
+        { q: "表示层中，用于将数据转换为标准格式的是？", a: "标准编码", ops: ["加密编码", "压缩编码", "标准编码", "解码"], analysis: "解析：表示层主要通过统一的编码格式解决不同系统间的表示差异 。" },
+        { q: "应用层协议中，用于实现远程文件传输的是？", a: "FTP协议", ops: ["HTTP协议", "FTP协议", "SMTP协议", "POP3协议"], analysis: "解析：FTP（文件传输协议）专门用于在网络上传输大文件 。" }
+    ]
+}
+,
+{
+    name: "练习9：应用层协议、设备管理与介质特性 (161-180题)",
+    questions: [
+        { q: "HTTP协议采用的通信模式是？", a: "浏览器/服务器模式", ops: ["客户机/服务器模式", "浏览器/服务器模式", "对等模式", "广播模式"], analysis: "解析：HTTP协议主要用于Web浏览器与Web服务器之间的交互，即B/S模式 [cite: 349]。" },
+        { q: "HTTPS协议通过什么技术保护数据传输安全？", a: "非对称加密", ops: ["对称加密", "非对称加密", "哈希加密", "明文传输"], analysis: "解析：HTTPS在HTTP基础上加入了SSL/TLS层，通过非对称加密等手段确保安全 [cite: 350]。" },
+        { q: "SMTP协议的默认端口号是？", a: "25", ops: ["25", "110", "80", "443"], analysis: "解析：简单邮件传输协议（SMTP）用于发送邮件，标准端口为25 [cite: 351]。" },
+        { q: "POP3协议的默认端口号是？", a: "110", ops: ["25", "110", "80", "443"], analysis: "解析：邮局协议版本3（POP3）用于接收邮件，标准端口为110 [cite: 352]。" },
+        { q: "负责将IP数据包转换为适合物理介质传输的帧的是？", a: "网络接口层", ops: ["应用层", "传输层", "网络层", "网络接口层"], analysis: "解析：在TCP/IP模型中，网络接口层负责将数据封装成帧并进行物理传输 [cite: 353]。" },
+        { q: "用于检测网络连接可达性的协议是？", a: "ICMP协议", ops: ["IP协议", "TCP协议", "ICMP协议", "ARP协议"], analysis: "解析：ICMP协议（如ping命令）常用于探测网络节点是否可达及检测网络故障 [cite: 354]。" },
+        { q: "网卡的MAC地址中，用于标识厂商的部分是？", a: "前24位", ops: ["前24位", "后24位", "前16位", "后16位"], analysis: "解析：MAC地址的前24位是由IEEE分配给厂商的组织唯一标识符（OUI） [cite: 355]。" },
+        { q: "无线网卡通过什么技术与无线AP连接？", a: "Wi-Fi", ops: ["蓝牙", "Wi-Fi", "红外线", "卫星通信"], analysis: "解析：Wi-Fi（IEEE 802.11标准）是无线网卡与接入点连接的主流技术 [cite: 356]。" },
+        { q: "集线器属于哪种类型的网络设备？", a: "物理层设备", ops: ["二层设备", "三层设备", "物理层设备", "应用层设备"], analysis: "解析：集线器仅在物理层对信号进行放大和转发，属于物理层设备 [cite: 357]。" },
+        { q: "交换机通过什么表记录设备的MAC地址和端口对应关系？", a: "MAC地址表", ops: ["路由表", "MAC地址表", "端口表", "协议表"], analysis: "解析：二层交换机利用MAC地址表来决定将数据帧转发到哪一个端口 [cite: 358]。" },
+        { q: "三层交换机通过什么协议实现不同网段之间的路由转发？", a: "IP协议", ops: ["IP协议", "TCP协议", "UDP协议", "ARP协议"], analysis: "解析：三层交换机工作在网络层，利用IP协议进行跨网段的路由寻址 [cite: 359]。" },
+        { q: "路由器的路由表用于存储？", a: "路由信息", ops: ["MAC地址信息", "端口信息", "路由信息", "协议信息"], analysis: "解析：路由表记录了到达不同目标网络的最佳路径信息 [cite: 360]。" },
+        { q: "中继器只能再生哪种信号？", a: "数字信号", ops: ["数字信号", "模拟信号", "光信号", "射频信号"], analysis: "解析：中继器专门用于整形并放大数字信号以延长传输距离 [cite: 361]。" },
+        { q: "无线AP的覆盖范围通常为？", a: "100米左右", ops: ["10米左右", "50米左右", "100米左右", "500米左右"], analysis: "解析：在典型室内或半开放环境中，普通无线AP的覆盖半径约为100米 [cite: 362]。" },
+        { q: "屏蔽双绞线（STP）比非屏蔽双绞线多了一层？", a: "屏蔽层", ops: ["绝缘层", "屏蔽层", "保护层", "导体层"], analysis: "解析：STP在外层或线对间增加了金属屏蔽层以减少电磁干扰 [cite: 363]。" },
+        { q: "六类双绞线的最大传输速率为？", a: "1Gbps", ops: ["100Mbps", "1Gbps", "10Gbps", "100Gbps"], analysis: "解析：六类线（Cat 6）在标准百米距离内通常支持1Gbps的千兆传输 [cite: 364]。" },
+        { q: "粗同轴电缆的特性阻抗是？", a: "50欧姆", ops: ["50欧姆", "75欧姆", "100欧姆", "120欧姆"], analysis: "解析：基带传输用的同轴电缆（如粗缆）特性阻抗通常为50欧姆 [cite: 365]。" },
+        { q: "单模光纤的传输距离可达？", a: "10千米以上", ops: ["10千米以上", "100千米以上", "1000千米以上", "10000千米以上"], analysis: "解析：由于色散极小，单模光纤支持极远距离的高速传输，通常可达10km以上 [cite: 366]。" },
+        { q: "多模光纤的纤芯直径通常为？", a: "50微米", ops: ["50微米", "100微米", "150微米", "200微米"], analysis: "解析：常见的多模光纤纤芯直径为50或62.5微米 [cite: 367]。" },
+        { q: "用于连接建筑物之间缆线的子系统是？", a: "建筑群子系统", ops: ["水平子系统", "垂直子系统", "建筑群子系统", "进线间子系统"], analysis: "解析：建筑群子系统负责实现楼宇之间的布线连接 [cite: 368]。" }
+    ]
+}
+,
+{
+    name: "练习10：综合布线实务与设备环境要求 (181-200题)",
+    questions: [
+        { q: "工作区子系统中，信息插座应安装在什么位置？", a: "终端设备附近", ops: ["远离终端设备", "终端设备附近", "墙角", "天花板"], analysis: "解析：信息插座应安装在靠近终端设备（如电脑、电话）的位置，且安装位置应高于地面30cm左右 [cite: 181]。" },
+        { q: "水平子系统中，双绞线的敷设方式不包括？", a: "室外敷设", ops: ["吊顶内敷设", "地板下敷设", "墙壁内敷设", "室外敷设"], analysis: "解析：水平子系统处于同一层楼内，通常采用吊顶、地板或墙内敷设，室外敷设属于建筑群子系统范畴 [cite: 182]。" },
+        { q: "垂直子系统的缆线通常采用哪种敷设方式？", a: "竖井内敷设", ops: ["吊顶内敷设", "地板下敷设", "竖井内敷设", "墙壁内敷设"], analysis: "解析：垂直骨干系统通常沿建筑物的弱电竖井垂直敷设，连接各层管理间 [cite: 183]。" },
+        { q: "设备间子系统中，不需要配备的设备是？", a: "终端设备", ops: ["服务器", "路由器", "终端设备", "交换机"], analysis: "解析：设备间是集中安装公共设备的地方（如交换机、服务器），而终端设备（如PC）通常位于工作区 [cite: 184]。" },
+        { q: "进线间子系统的主要作用是？", a: "外部线路入口，完成内外线路交接", ops: ["连接工作区与管理间", "外部线路入口，完成内外线路交接", "连接管理间与设备间", "连接多个建筑物"], analysis: "解析：进线间是外部管道进入建筑物的入口，主要用于安装电信运营商的接入设备 [cite: 185]。" },
+        { q: "管理间子系统中，不需要安装的设备是？", a: "服务器", ops: ["机柜", "配线架", "服务器", "交换机"], analysis: "解析：管理间主要安装配线架和层级交换机进行线路交接，中心服务器通常存放在设备间 [cite: 186]。" },
+        { q: "建筑群子系统的室外缆线敷设方式不包括？", a: "吊顶内敷设", ops: ["架空敷设", "直埋敷设", "管道敷设", "吊顶内敷设"], analysis: "解析：吊顶内敷设属于楼宇内部布线，建筑群布线涉及楼宇之间，常采用架空、地埋或管道 [cite: 187]。" },
+        { q: "综合布线系统测试中，主要的性能指标不包括？", a: "设备工作电压", ops: ["近端串扰", "衰减", "回波损耗", "设备工作电压"], analysis: "解析：布线测试侧重于物理链路的电学特性（如衰减、串扰），设备电压属于供电系统范畴 [cite: 9]。" },
+        { q: "RJ-45水晶头的接线标准中，T568B的第1、2线对颜色是？", a: "橙白、橙", ops: ["绿白、绿", "橙白、橙", "蓝白、蓝", "棕白、棕"], analysis: "解析：T568B标准规定1-8线序为：橙白、橙、绿白、蓝、蓝白、绿、棕白、棕 [cite: 148]。" },
+        { q: "多模光纤在千兆网中的最大传输距离约为？", a: "550米", ops: ["100米", "550米", "2000米", "10公里"], analysis: "解析：常用多模光纤（如OM2）在千兆以太网下的传输极限约为550米 [cite: 57, 179]。" },
+        { q: "下列哪种设备能隔离广播风暴？", a: "路由器", ops: ["集线器", "二层交换机", "中继器", "路由器"], analysis: "解析：路由器工作在第三层，不转发二层广播报文，从而能有效隔离广播域 [cite: 53, 172]。" },
+        { q: "计算机网络中，ISP的含义是？", a: "因特网服务提供商", ops: ["因特网协议", "因特网服务提供商", "网络管理中心", "网络结构"], analysis: "解析：ISP（Internet Service Provider）是指为用户提供入网服务的机构 [cite: 9]。" },
+        { q: "在TCP/IP协议簇中，HTTP协议工作在？", a: "应用层", ops: ["网络层", "传输层", "应用层", "数据链路层"], analysis: "解析：HTTP（超文本传输协议）属于顶层应用，直接为用户网页访问服务 [cite: 43, 78]。" },
+        { q: "Ping命令使用的是哪种协议？", a: "ICMP", ops: ["TCP", "UDP", "ICMP", "IGMP"], analysis: "解析：Ping工具利用ICMP协议的Echo请求和回复来检测链路状态 [cite: 166]。" },
+        { q: "子网掩码的作用是？", a: "区分网络地址和主机地址", ops: ["识别网卡", "区分网络地址和主机地址", "控制端口访问", "加速数据转发"], analysis: "解析：子网掩码通过与IP地址进行“与”运算，确定该IP所属的网络段 [cite: 152]。" },
+        { q: "标准机柜的宽度通常为？", a: "19英寸", ops: ["10英寸", "19英寸", "24英寸", "32英寸"], analysis: "解析：19英寸是网络设备和服务器机柜的标准工业宽度规格 [cite: 186]。" },
+        { q: "网络延时抖动是指？", a: "延时的变化量", ops: ["延时的最大值", "延时的最小值", "延时的变化量", "延时的平均值"], analysis: "解析：抖动（Jitter）是指分组到达时间差的变化情况，对语音视频业务影响较大 [cite: 94]。" },
+        { q: "在综合布线中，6类双绞线的带宽是？", a: "250MHz", ops: ["100MHz", "250MHz", "500MHz", "600MHz"], analysis: "解析：超五类线带宽为100MHz，六类线带宽提升至250MHz以支持千兆网 [cite: 176]。" },
+        { q: "OSI模型中，物理层传输的最小单位是？", a: "比特", ops: ["比特", "帧", "分组", "报文"], analysis: "解析：物理层负责最底层的原始比特流传输 [cite: 36, 39]。" },
+        { q: "计算机网络发展史上，第四个阶段的特征是？", a: "高速网络与物联网", ops: ["面向终端", "计算机网络集成", "开放式标准化", "高速网络与物联网"], analysis: "解析：当前阶段以千兆/万兆网络、云计算、移动互联及物联网为核心特征 [cite: 9]。" }
+    ]
+}
+
+    ];
+
+    let currentChIdx = -1;
+    let currentQIdx = 0;
+    let sessionScore = 0;
+
+    window.onload = function() {
+        const name = localStorage.getItem('user_name');
+        if (name) showMain(name);
+        
+        document.getElementById('user-name-input').onkeydown = e => { if(e.key==='Enter') login(); };
+    };
+
+    function login() {
+        const name = document.getElementById('user-name-input').value.trim();
+        if (!name) return alert("请输入姓名");
+        localStorage.setItem('user_name', name);
+        showMain(name);
+    }
+
+    function logout() {
+        if (confirm("将清除所有姓名记录和刷题最高分，确定吗？")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    function showMain(name) {
+        document.getElementById('page-login').style.display = 'none';
+        document.getElementById('main-header').style.visibility = 'visible';
+        document.getElementById('display-name').innerText = name;
+        goHome();
+    }
+
+    function renderMenu() {
+        const list = document.getElementById('chapter-list');
+        list.innerHTML = '';
+        database.forEach((ch, idx) => {
+            const best = localStorage.getItem(`ch_${idx}_best`) || 0;
+            const card = document.createElement('div');
+            card.className = 'chapter-card';
+            card.innerHTML = `
+                <div class="chapter-info">
+                    <h3>${ch.name}</h3>
+                    <div class="high-score">历史最高分：${best}</div>
+                </div>
+                <button class="start-btn" onclick="startChapter(${idx})">进入</button>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function startChapter(idx) {
+        currentChIdx = idx;
+        currentQIdx = 0;
+        sessionScore = 0;
+        showPage('page-quiz');
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        const qData = database[currentChIdx].questions[currentQIdx];
+        document.getElementById('q-text').innerText = (currentQIdx + 1) + ". " + qData.q;
+        document.getElementById('q-indicator').innerText = (currentQIdx + 1) + "/" + database[currentChIdx].questions.length;
+        document.getElementById('progress').style.width = ((currentQIdx+1)/database[currentChIdx].questions.length*100) + "%";
+        
+        document.getElementById('analysis-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+
+        const opsBox = document.getElementById('options');
+        opsBox.innerHTML = '';
+        qData.ops.forEach(opt => {
+            const btn = document.createElement('div');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = function() { handleSelect(this, qData.a, qData.analysis); };
+            opsBox.appendChild(btn);
+        });
+    }
+
+    function handleSelect(btn, correct, analysis) {
+        const allBtns = document.querySelectorAll('.option-btn');
+        allBtns.forEach(b => b.classList.add('disabled'));
+        
+        const isRight = btn.innerText === correct;
+        if (isRight) {
+            btn.classList.add('correct');
+            sessionScore++;
+        } else {
+            btn.classList.add('wrong');
+            allBtns.forEach(b => { if(b.innerText === correct) b.classList.add('correct'); });
+        }
+
+        const ab = document.getElementById('analysis-box');
+        ab.style.display = 'block';
+        ab.className = 'analysis-card ' + (isRight ? 'correct-analysis' : 'wrong-analysis');
+        document.getElementById('analysis-head').innerText = isRight ? "✔ 回答正确" : "✘ 回答错误";
+        document.getElementById('analysis-body').innerText = analysis;
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function nextQuestion() {
+        currentQIdx++;
+        if (currentQIdx < database[currentChIdx].questions.length) {
+            renderQuestion();
+        } else {
+            const lastBest = parseInt(localStorage.getItem(`ch_${currentChIdx}_best`) || 0);
+            if (sessionScore > lastBest) localStorage.setItem(`ch_${currentChIdx}_best`, sessionScore);
+            alert(`本章测试结束！本次得分：${sessionScore}`);
+            goHome();
+        }
+    }
+
+    function goHome() {
+        showPage('page-home');
+        renderMenu();
+    }
+
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+        document.getElementById(id).classList.add('active-page');
+    }
+</script>
+</body>
+</html>
